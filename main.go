@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -31,6 +30,10 @@ func main() {
 
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, option.WithAPIKey(config.GEMINI_API_KEY))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	model := client.GenerativeModel("gemini-2.0-flash")
 	resp, err := model.GenerateContent(ctx, genai.Text(question))
 	if err != nil {
@@ -82,7 +85,7 @@ func (c *Configurations) loadConfigurations() error {
 		envValue := os.Getenv(envName)
 
 		if envValue == "" {
-			return errors.New(fmt.Sprintf("%+v is empty. Please set the env variable.", envName))
+			return fmt.Errorf("%+v is empty. Please set the env variable", envName)
 		}
 
 		fieldValue.SetString(envValue)
