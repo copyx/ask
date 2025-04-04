@@ -8,27 +8,27 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var cfgPath = ""
+var (
+	configPath = ""
+	rootCmd    = &cobra.Command{
+		Use:   "ask",
+		Short: "A simple AI CLI client",
+	}
+)
 
 func init() {
 	cobra.OnInitialize(onInitialize)
-	defaultCfgFilePath := config.GetDefaultCfgFilePath()
 
 	rootCmd.PersistentFlags().StringVar(
-		&cfgPath,
+		&configPath,
 		"config",
-		"",
-		fmt.Sprintf("Config file path (default: %s)", defaultCfgFilePath))
+		config.DefaultConfigPath(),
+		"Config file path")
 }
 
 func onInitialize() {
-	config.SetConfigFilePath(cfgPath)
+	config.SetConfigPath(configPath)
 	config.InitConfig()
-}
-
-var rootCmd = &cobra.Command{
-	Use:   "ask",
-	Short: "A simple AI CLI client",
 }
 
 func Execute() {

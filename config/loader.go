@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/viper"
 )
@@ -12,43 +13,72 @@ const (
 	envPrefix             = "ASK_"
 )
 
-var (
-	configFilePath = ""
-	configKeys     = [...]string{"GEMINI_API_KEY"}
-)
+var configPath = ""
 
-func GetDefaultCfgFilePath() string {
+func DefaultConfigDir() string {
 	configDirPath, err := os.UserHomeDir()
 	if err != nil {
-		panic(err)
+		panic(newConfigError(err))
 	}
 
 	return configDirPath
 }
 
-func GetConfigFilePath() string {
-	if configFilePath == "" {
-		return GetDefaultCfgFilePath()
+func DefaultConfigPath() string {
+	return filepath.Join(DefaultConfigDir(), defaultConfigFileName)
+}
+
+func ConfigDir() string {
+	if configPath == "" {
+		return DefaultConfigDir()
 	}
 
-	return configFilePath
+	absPath, err := filepath.Abs(configPath)
+	if err != nil {
+		panic(newConfigError(err))
+	}
+	return filepath.Dir(absPath)
 }
 
-func SetConfigFilePath(path string) {
-	configFilePath = path
+// SetConfigPath set path for configuration file
+func SetConfigPath(path string) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		panic(newConfigError(err))
+	} else if fileInfo.IsDir() {
+		panic(newConfigError(fmt.Errorf("\"%s\" is not a file", path)))
+	}
+
+	configPath = path
 }
 
+func ConfigFileName() string {
+	if configPath == "" {
+		return defaultConfigFileName
+	}
+
+	absPath, err := filepath.Abs(configPath)
+	if err != nil {
+		panic(newConfigError(err))
+	}
+	return filepath.Base(absPath)
+}
+
+// InitConfig
 func InitConfig() {
-	viper.SetConfigName(defaultConfigFileName)
+	viper.SetConfigName(ConfigFileName())
 	viper.SetConfigType("toml")
-	viper.AddConfigPath(GetConfigFilePath())
+	viper.AddConfigPath(ConfigDir())
 
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		panic(newConfigError(err))
 	}
 }
 
 func Get(key string) any {
 	return viper.Get(key)
+}
+
+func newConfigError(err error) error {
+	return fmt.Errorf("config: %w", err)
 }
