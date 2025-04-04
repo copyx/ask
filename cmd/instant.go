@@ -17,11 +17,14 @@ var instantCmd = &cobra.Command{
 	Use:   "instant",
 	Short: "Send only one prompt to AI",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var config config.Configurations
-		config.LoadConfigurations()
+		value := config.Get("gemini.api_key")
+		apiKey, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("invalid api key: %v", value)
+		}
 
 		var ai ai.GeminiAI
-		ai.Init(config.GEMINI_API_KEY)
+		ai.Init(apiKey)
 		result, err := ai.GenerateContent(strings.Join(args, " "))
 		if err != nil {
 			return err

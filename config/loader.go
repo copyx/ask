@@ -3,32 +3,52 @@ package config
 import (
 	"fmt"
 	"os"
-	"reflect"
+
+	"github.com/spf13/viper"
 )
 
-type Configurations struct {
-	GEMINI_API_KEY string
-}
+const (
+	defaultConfigFileName = ".ask"
+	envPrefix             = "ASK_"
+)
 
-const envPrefix = "ASK_"
+var (
+	configFilePath = ""
+	configKeys     = [...]string{"GEMINI_API_KEY"}
+)
 
-var configKeys = [...]string{"GEMINI_API_KEY"}
-
-// loadConfigurations load configurations from env with validation
-func (c *Configurations) LoadConfigurations() error {
-	configValue := reflect.Indirect(reflect.ValueOf(c))
-
-	for _, key := range configKeys {
-		fieldValue := configValue.FieldByName(key)
-		envName := envPrefix + key
-		envValue := os.Getenv(envName)
-
-		if envValue == "" {
-			return fmt.Errorf("%+v is empty. Please set the env variable", envName)
-		}
-
-		fieldValue.SetString(envValue)
+func GetDefaultCfgFilePath() string {
+	configDirPath, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
 	}
 
-	return nil
+	return configDirPath
+}
+
+func GetConfigFilePath() string {
+	if configFilePath == "" {
+		return GetDefaultCfgFilePath()
+	}
+
+	return configFilePath
+}
+
+func SetConfigFilePath(path string) {
+	configFilePath = path
+}
+
+func InitConfig() {
+	viper.SetConfigName(defaultConfigFileName)
+	viper.SetConfigType("toml")
+	viper.AddConfigPath(GetConfigFilePath())
+
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func Get(key string) any {
+	return viper.Get(key)
 }
